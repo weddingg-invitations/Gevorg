@@ -1,0 +1,91 @@
+<!-- Ваша существующая форма -->
+<input type="text" class="getinputval_name" placeholder="Имя">
+<input type="text" class="getinputval_guestsCount" placeholder="Количество гостей">
+<input type="radio" class="radiobuttones" value="вариант1"> Вариант 1
+<input type="radio" class="radiobuttones" value="вариант2"> Вариант 2
+<button class="send_data_btn" id="send_data_btn">Отправить</button>
+
+<!-- Кнопки для работы с данными -->
+<div id="data-container"></div>
+
+<script>
+// Ваш существующий код отправки
+document.querySelector('#send_data_btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    const name = document.querySelector('input.getinputval_name')?.value || '';
+    const guests = document.querySelector('input.getinputval_guestsCount')?.value || '';
+    const selectedRadio = document.querySelector('input.radiobuttones:checked')?.value || 'не выбрано';
+    
+    const allRadios = Array.from(document.querySelectorAll('input.radiobuttones')).map(r => ({
+        value: r.value,
+        checked: r.checked
+    }));
+    
+    const result = {
+        name: name,
+        guestsCount: guests,
+        selectedOption: selectedRadio,
+        allRadios: allRadios
+    };
+    
+    // Отправка в БД
+    fetch('save_form.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(result)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Сохранено! ID: ' + data.id);
+        }
+    });
+});
+
+// Функции для получения данных
+getAllData()
+function getAllData() {
+    fetch('../backend/get_data.php')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                console.log('Данные:', result.data);
+                displayData(result.data);
+            }
+        });
+}
+
+function getDataById(id) {
+    fetch(`../backend/get_single_data.php?id=${id}`)
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                fillFormWithData(result.data);
+            }
+        });
+}
+
+function displayData(data) {
+    const container = document.getElementById('data-container');
+    container.innerHTML = '<h3>Данные из БД:</h3>';
+    data.forEach(item => {
+        container.innerHTML += `
+            <div>
+                <p>${item.id}: ${item.name} - ${item.guestsCount} гостей (${item.selectedOption})</p>
+                <button onclick="getDataById(${item.id})">Загрузить</button>
+            </div>
+        `;
+    });
+}
+
+function fillFormWithData(data) {
+    document.querySelector('input.getinputval_name').value = data.name;
+    document.querySelector('input.getinputval_guestsCount').value = data.guestsCount;
+    
+    const radio = document.querySelector(`input.radiobuttones[value="${data.selectedOption}"]`);
+    if (radio) radio.checked = true;
+    
+    alert('Данные загружены в форму!');
+}
+</script>
